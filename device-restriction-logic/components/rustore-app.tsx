@@ -34,6 +34,7 @@ import {
   SUPPORT_URL,
   getCustomApp,
   customAppCard,
+  searchCustomApps,
 } from '@/lib/custom-apps'
 import { appIdFromSlug, appShareUrl, miniAppUrl } from '@/lib/share'
 
@@ -104,6 +105,17 @@ export function RuStoreApp({
     { keepPreviousData: true, revalidateOnFocus: false },
   )
 
+  // Подмешиваем кастомные приложения в результаты: они ищутся так же,
+  // как и приложения из API RuStore, и показываются первыми.
+  const results = useMemo<AppCard[]>(() => {
+    const apiApps = data?.apps ?? []
+    if (!activeQuery) return apiApps
+    const custom = searchCustomApps(activeQuery).map(customAppCard)
+    if (custom.length === 0) return apiApps
+    const customIds = new Set(custom.map((a) => a.id))
+    return [...custom, ...apiApps.filter((a) => !customIds.has(a.id))]
+  }, [data, activeQuery])
+
   function openApp(app: AppCard) {
     setSelected(app)
     window.scrollTo({ top: 0 })
@@ -169,8 +181,8 @@ export function RuStoreApp({
         !showHome && (
           <ResultList
             title={listTitle}
-            items={data?.apps ?? []}
-            loading={isLoading && !data}
+            items={results}
+            loading={isLoading && results.length === 0}
             onOpen={openApp}
           />
         )
@@ -304,7 +316,7 @@ function ProfileView({ notify }: { notify: (m: string) => void }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-semibold text-primary-foreground">
-            Свяжитесь с агентом поддержки в Telegram
+            Свяжитесь с аг��нтом поддержки в Telegram
           </p>
           <p className="truncate text-sm text-primary-foreground/80">
             @{SUPPORT_TELEGRAM}

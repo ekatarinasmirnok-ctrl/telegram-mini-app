@@ -58,6 +58,27 @@ export function getCustomApp(id: string): AppFull | undefined {
   return CUSTOM_APPS.find((a) => a.id === id)
 }
 
+// Поиск по кастомным приложениям — по названию, описанию, разработчику и категории.
+// Используется, чтобы подмешивать кастомные приложения в результаты поиска RuStore.
+export function searchCustomApps(query: string): AppFull[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return []
+  const words = q.split(/\s+/).filter(Boolean)
+  return CUSTOM_APPS.filter((app) => {
+    const haystack = [
+      app.name,
+      app.subtitle,
+      app.developer,
+      app.category,
+      app.fullDescription,
+    ]
+      .join(' ')
+      .toLowerCase()
+    // Совпадение, если найдено хотя бы одно слово запроса.
+    return words.some((w) => haystack.includes(w))
+  })
+}
+
 export function customAppCard(app: AppFull): AppCard {
   return {
     id: app.id,
