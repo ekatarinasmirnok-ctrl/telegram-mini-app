@@ -13,6 +13,9 @@ declare global {
         setBackgroundColor?: (color: string) => void
         openTelegramLink?: (url: string) => void
         openLink?: (url: string) => void
+        initDataUnsafe?: {
+          start_param?: string
+        }
         HapticFeedback?: {
           impactOccurred: (style: string) => void
           notificationOccurred: (type: string) => void
@@ -46,6 +49,57 @@ export function getTelegramPlatform(): string | undefined {
     return window.Telegram?.WebApp?.platform
   } catch {
     return undefined
+  }
+}
+
+// Параметр deep-link'а (?startapp=... в Telegram). Вне Telegram — из URL,
+// чтобы ссылки можно было тестировать в обычном браузере.
+export function getStartParam(): string | undefined {
+  try {
+    const fromTg = window.Telegram?.WebApp?.initDataUnsafe?.start_param
+    if (fromTg) return fromTg
+    const params = new URLSearchParams(window.location.search)
+    return (
+      params.get('startapp') ||
+      params.get('tgWebAppStartParam') ||
+      undefined
+    )
+  } catch {
+    return undefined
+  }
+}
+
+// Поделиться ссылкой: внутри Telegram — нативный диалог пересылки,
+// иначе — системный Share или копирование в буфер обмена.
+// Возвращает true, если ссылка была скопирована (для показа уведомления).
+export function shareLink(url: string, text = ''): boolean {
+  haptic('light')
+  const tg = window.Telegram?.WebApp
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(
+    url,
+  )}&text=${encodeURIComponent(text)}`
+  try {
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(shareUrl)
+      return false
+    }
+  } catch {
+    // fall through
+  }
+  try {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      void navigator.share({ url, text }).catch(() => {})
+      return false
+    }
+  } catch {
+    // fall through
+  }
+  try {
+    navigator.clipboard?.writeText(url)
+    return true
+  } catch {
+    window.open(shareUrl, '_blank', 'noopener,noreferrer')
+    return false
   }
 }
 

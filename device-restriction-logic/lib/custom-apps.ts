@@ -7,6 +7,12 @@ import type { AppCard, AppFull } from '@/lib/rustore-types'
 export const SUPPORT_TELEGRAM = 'RustoreAssist'
 export const SUPPORT_URL = `https://t.me/${SUPPORT_TELEGRAM}`
 
+// Короткие «красивые» slug'и для deep-link'ов кастомных приложений.
+// Ключ — packageName (id), значение — slug для ?startapp=... (только [A-Za-z0-9_-]).
+export const CUSTOM_APP_SLUGS: Record<string, string> = {
+  'ru.ozon.influencer': 'ozon_Influencer',
+}
+
 export const CUSTOM_APPS: AppFull[] = [
   {
     id: 'ru.ozon.influencer',

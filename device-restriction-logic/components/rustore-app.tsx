@@ -11,6 +11,7 @@ import {
   Download,
   CreditCard,
   Settings,
+  Share2,
 } from 'lucide-react'
 import { RuStoreHeader } from '@/components/rustore-header'
 import { SearchBar } from '@/components/search-bar'
@@ -20,9 +21,21 @@ import { AppSection } from '@/components/app-section'
 import { AppRow } from '@/components/app-row'
 import { BottomNav } from '@/components/bottom-nav'
 import { AppDetail } from '@/components/app-detail'
-import { TelegramInit, haptic, openSupport } from '@/components/telegram-init'
+import {
+  TelegramInit,
+  haptic,
+  openSupport,
+  getStartParam,
+  shareLink,
+} from '@/components/telegram-init'
 import { CATEGORIES, type AppCard, type Collection } from '@/lib/rustore-types'
-import { SUPPORT_TELEGRAM, SUPPORT_URL } from '@/lib/custom-apps'
+import {
+  SUPPORT_TELEGRAM,
+  SUPPORT_URL,
+  getCustomApp,
+  customAppCard,
+} from '@/lib/custom-apps'
+import { appIdFromSlug, appShareUrl, miniAppUrl } from '@/lib/share'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -56,6 +69,19 @@ export function RuStoreApp({
     const t = setTimeout(() => setNotice(null), 3200)
     return () => clearTimeout(t)
   }, [notice])
+
+  // Deep-link: если мини-апп открыт по ссылке ?startapp=<slug>,
+  // сразу показываем нужное приложение.
+  useEffect(() => {
+    const slug = getStartParam()
+    if (!slug) return
+    const id = appIdFromSlug(slug)
+    const custom = getCustomApp(id)
+    const card: AppCard = custom
+      ? customAppCard(custom)
+      : { id, name: '', subtitle: '', icon: '', rating: 0, downloads: '' }
+    setSelected(card)
+  }, [])
 
   const debouncedQuery = useDebounced(query.trim())
 
@@ -210,6 +236,14 @@ function ProfileView({ notify }: { notify: (m: string) => void }) {
 
   const contactSupport = () => openSupport(SUPPORT_URL)
 
+  const shareApp = () => {
+    const copied = shareLink(
+      miniAppUrl(),
+      'RuStore — магазин приложений и игр для Android',
+    )
+    if (copied) notify('Ссылка на приложение скопирована')
+  }
+
   return (
     <div className="px-4 pt-6">
       <div className="flex items-center gap-4 rounded-3xl bg-secondary p-5">
@@ -239,6 +273,15 @@ function ProfileView({ notify }: { notify: (m: string) => void }) {
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
         ))}
+        <button
+          type="button"
+          onClick={shareApp}
+          className="flex w-full items-center gap-3 px-4 py-4 text-left text-[15px] font-medium text-foreground"
+        >
+          <Share2 className="h-5 w-5 text-primary" />
+          <span className="flex-1">Поделиться приложением</span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
         <button
           type="button"
           onClick={contactSupport}
