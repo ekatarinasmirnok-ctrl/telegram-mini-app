@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import useSWR from 'swr'
 import {
   ArrowLeft,
@@ -9,12 +10,15 @@ import {
   Baby,
   Headset,
   ChevronRight,
+  Share2,
+  Check,
 } from 'lucide-react'
 import { AppIcon } from '@/components/app-icon'
 import { InstallButton } from '@/components/install-button'
-import { haptic, openSupport } from '@/components/telegram-init'
+import { haptic, openSupport, shareLink } from '@/components/telegram-init'
 import type { AppCard, AppFull } from '@/lib/rustore-types'
 import { SUPPORT_TELEGRAM, SUPPORT_URL } from '@/lib/custom-apps'
+import { appShareUrl } from '@/lib/share'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -60,6 +64,16 @@ export function AppDetail({
   const icon = app?.icon ?? fallback.icon
   const developer = app?.developer ?? fallback.subtitle
 
+  const [copied, setCopied] = useState(false)
+
+  function handleShare() {
+    const didCopy = shareLink(appShareUrl(appId), `${name} — установить из RuStore`)
+    if (didCopy) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   return (
     <div className="pb-28">
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/90 px-4 py-3 backdrop-blur">
@@ -77,6 +91,18 @@ export function AppDetail({
         <span className="truncate text-base font-bold text-foreground">
           {name}
         </span>
+        <button
+          type="button"
+          aria-label={copied ? 'Ссылка скопирована' : 'Поделиться'}
+          onClick={handleShare}
+          className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground"
+        >
+          {copied ? (
+            <Check className="h-5 w-5 text-primary" />
+          ) : (
+            <Share2 className="h-5 w-5" />
+          )}
+        </button>
       </header>
 
       <div className="flex items-center gap-4 px-4 pt-4">
