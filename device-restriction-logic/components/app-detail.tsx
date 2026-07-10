@@ -12,11 +12,13 @@ import {
   ChevronRight,
   Share2,
   Check,
+  BadgeCheck,
 } from 'lucide-react'
 import { AppIcon } from '@/components/app-icon'
 import { InstallButton } from '@/components/install-button'
 import { haptic, openSupport, shareLink } from '@/components/telegram-init'
-import type { AppCard, AppFull } from '@/lib/rustore-types'
+import type { AppCard, AppFull, Review } from '@/lib/rustore-types'
+import { ratingHistogram } from '@/lib/rustore-types'
 import { SUPPORT_TELEGRAM, SUPPORT_URL } from '@/lib/custom-apps'
 import { appShareUrl } from '@/lib/share'
 
@@ -40,6 +42,92 @@ function Stat({
       <span className="text-[11px] leading-tight text-muted-foreground">
         {label}
       </span>
+    </div>
+  )
+}
+
+// Склонение: 1 отзыв / 2 отзыва / 5 отзывов
+function plural(n: number, forms: [string, string, string]): string {
+  const mod10 = n % 10
+  const mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) return forms[0]
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return forms[1]
+  return forms[2]
+}
+
+function Stars({ rating, className = 'h-4 w-4' }: { rating: number; className?: string }) {
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`Оценка ${rating} из 5`}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star
+          key={s}
+          className={`${className} ${
+            s <= Math.round(rating)
+              ? 'fill-rating text-rating'
+              : 'fill-border text-border'
+          }`}
+        />
+      ))}
+    </div>
+  )
+}
+
+function RatingBreakdown({ rating, reviews }: { rating: number; reviews: number }) {
+  const bars = ratingHistogram(rating, reviews)
+  return (
+    <div className="flex items-center gap-5 rounded-2xl bg-secondary px-4 py-4">
+      <div className="flex flex-col items-center">
+        <span className="text-4xl font-extrabold leading-none text-foreground">
+          {rating.toFixed(1).replace('.', ',')}
+        </span>
+        <div className="mt-1.5">
+          <Stars rating={rating} className="h-3.5 w-3.5" />
+        </div>
+        <span className="mt-1 text-xs text-muted-foreground">
+          {reviews.toLocaleString('ru-RU')}{' '}
+          {plural(reviews, ['оценка', 'оценки', 'оценок'])}
+        </span>
+      </div>
+      <div className="min-w-0 flex-1 space-y-1">
+        {bars.map((b) => (
+          <div key={b.star} className="flex items-center gap-2">
+            <span className="w-2 text-right text-xs text-muted-foreground">
+              {b.star}
+            </span>
+            <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-border">
+              <div
+                className="h-full rounded-full bg-rating"
+                style={{ width: `${b.percent}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ReviewCard({ review }: { review: Review }) {
+  const initial = review.author.trim().charAt(0).toUpperCase()
+  return (
+    <div className="w-72 shrink-0 rounded-2xl border border-border p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+          {initial}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-foreground">
+            {review.author}
+          </p>
+          <p className="text-xs text-muted-foreground">{review.date}</p>
+        </div>
+      </div>
+      <div className="mt-3">
+        <Stars rating={review.rating} className="h-3.5 w-3.5" />
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-foreground/80">
+        {review.text}
+      </p>
     </div>
   )
 }
@@ -111,9 +199,20 @@ export function AppDetail({
           <h1 className="text-lg font-bold leading-tight text-foreground text-balance">
             {name}
           </h1>
-          <p className="mt-1 truncate text-sm font-medium text-primary">
-            {developer}
+          <p className="mt-1 flex items-center gap-1 text-sm font-medium text-primary">
+            <span className="truncate">{developer}</span>
+            {app?.verified && (
+              <BadgeCheck
+                className="h-4 w-4 shrink-0 text-primary"
+                aria-label="Проверенный разработчик"
+              />
+            )}
           </p>
+          {app?.verified && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Официальный разработчик
+            </p>
+          )}
         </div>
       </div>
 
@@ -202,6 +301,24 @@ export function AppDetail({
           <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground/80">
             {app.whatsNew}
           </p>
+        </section>
+      )}
+
+      {/* Оценки и отзывы */}
+      {!loading && app.rating > 0 && (
+        <section className="px-4 pt-6">
+          <h2 className="mb-3 text-lg font-bold text-foreground">
+            Оценки и отзывы
+          </h2>
+          <RatingBreakdown rating={app.rating} reviews={app.reviews} />
+
+          {app.userReviews && app.userReviews.length > 0 && (
+            <div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto">
+              {app.userReviews.map((r, i) => (
+                <ReviewCard key={`${r.author}-${i}`} review={r} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
