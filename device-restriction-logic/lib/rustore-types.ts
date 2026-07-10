@@ -9,6 +9,13 @@ export interface AppCard {
   downloads: string
 }
 
+export interface Review {
+  author: string
+  rating: number // 1..5
+  date: string // например "12 мая 2024"
+  text: string
+}
+
 export interface AppFull extends AppCard {
   developer: string
   reviews: number
@@ -19,6 +26,44 @@ export interface AppFull extends AppCard {
   version: string
   screenshots: string[]
   category: string
+  verified?: boolean // официальный/проверенный разработчик
+  userReviews?: Review[] // отзывы пользователей
+}
+
+// Детерминированное распределение оценок по звёздам (5→1) из среднего рейтинга
+// и общего числа голосов. Даёт правдоподобную гистограмму без реальных данных.
+export function ratingHistogram(
+  average: number,
+  total: number,
+): { star: number; count: number; percent: number }[] {
+  const stars = [5, 4, 3, 2, 1]
+  if (!average || !total || total <= 0) {
+    return stars.map((star) => ({ star, count: 0, percent: 0 }))
+  }
+  const sigma = 0.85
+  const weights = stars.map((s) =>
+    Math.exp(-((s - average) ** 2) / (2 * sigma * sigma)),
+  )
+  const sum = weights.reduce((a, b) => a + b, 0) || 1
+  const raw = weights.map((w) => (w / sum) * total)
+
+  // Округляем так, чтобы сумма совпала с total.
+  const counts = raw.map((r) => Math.floor(r))
+  let remainder = total - counts.reduce((a, b) => a + b, 0)
+  const fracOrder = raw
+    .map((r, i) => ({ i, frac: r - Math.floor(r) }))
+    .sort((a, b) => b.frac - a.frac)
+  for (let k = 0; k < fracOrder.length && remainder > 0; k++) {
+    counts[fracOrder[k].i]++
+    remainder--
+  }
+
+  const max = Math.max(...counts, 1)
+  return stars.map((star, i) => ({
+    star,
+    count: counts[i],
+    percent: Math.round((counts[i] / max) * 100),
+  }))
 }
 
 export interface Collection {
