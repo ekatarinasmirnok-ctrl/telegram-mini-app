@@ -10,6 +10,9 @@ import {
   MessageSquare,
   Check,
   LogOut,
+  EyeOff,
+  KeyRound,
+  ShieldCheck,
 } from 'lucide-react'
 import { haptic, openSupport } from '@/components/telegram-init'
 import { SUPPORT_URL } from '@/lib/custom-apps'
@@ -234,6 +237,23 @@ function InfoCard({
   )
 }
 
+function SafetyPoint({
+  icon,
+  text,
+}: {
+  icon: React.ReactNode
+  text: string
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#0A84FF]/10">
+        {icon}
+      </span>
+      <p className="flex-1 text-[14px] leading-snug text-[#3C3C43]">{text}</p>
+    </div>
+  )
+}
+
 // ─── Шаг 2: Инструкция по установке ──────────────────────────────────────────
 const STEPS = [
   'Откройте приложение «Настройки» на вашем iPhone',
@@ -338,6 +358,30 @@ function ConfirmSheet({
             Я вышел из своего Apple ID (iCloud)
           </span>
         </button>
+
+        {/* Почему это безопасно */}
+        <div className="mt-6 rounded-3xl bg-[#F2F2F7] p-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-[#34C759]" strokeWidth={2.2} />
+            <p className="text-[16px] font-bold text-[#1C1C1E]">
+              Почему это безопасно
+            </p>
+          </div>
+          <div className="mt-3 space-y-3">
+            <SafetyPoint
+              icon={<EyeOff className="h-4 w-4 text-[#0A84FF]" />}
+              text="Мы не видим и не храним данные вашего личного аккаунта"
+            />
+            <SafetyPoint
+              icon={<KeyRound className="h-4 w-4 text-[#0A84FF]" />}
+              text="Вам не нужно нигде вводить свой пароль от личного Apple ID"
+            />
+            <SafetyPoint
+              icon={<Clock className="h-4 w-4 text-[#0A84FF]" />}
+              text="Общий аккаунт используется только на время установки"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Зафиксированный футер */}
@@ -402,10 +446,21 @@ function SupportSheet({
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0A84FF]/10">
             <Clock className="h-6 w-6 text-[#0A84FF]" />
           </span>
-          <div className="min-w-0">
-            <p className="text-[16px] font-bold text-[#1C1C1E]">
-              Ответ в течение 5 минут
-            </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[16px] font-bold text-[#1C1C1E]">
+                Ответ в течение 5 минут
+              </p>
+              <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#34C759]/10 px-2 py-0.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#34C759] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#34C759]" />
+                </span>
+                <span className="text-xs font-semibold text-[#248A3D]">
+                  Онлайн
+                </span>
+              </span>
+            </div>
             <p className="mt-0.5 text-sm leading-snug text-[#8A8A8E]">
               Оператор пришлёт данные для входа в аккаунт
             </p>
