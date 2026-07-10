@@ -8,12 +8,13 @@ import {
   Lock,
   Info,
   MessageSquare,
-  CircleAlert,
+  Check,
+  LogOut,
 } from 'lucide-react'
 import { haptic, openSupport } from '@/components/telegram-init'
 import { SUPPORT_URL } from '@/lib/custom-apps'
 
-type Step = null | 'appleid' | 'instructions' | 'error'
+type Step = null | 'appleid' | 'instructions' | 'confirm' | 'support'
 
 const InstallFlowContext = createContext<{
   startInstall: () => void
@@ -53,7 +54,7 @@ export function InstallFlowProvider({
           }}
           onPrepare={() => {
             haptic('medium')
-            setStep('error')
+            setStep('confirm')
           }}
         />
       )}
@@ -67,8 +68,18 @@ export function InstallFlowProvider({
         />
       )}
 
-      {step === 'error' && (
-        <ErrorSheet
+      {step === 'confirm' && (
+        <ConfirmSheet
+          onClose={close}
+          onConfirm={() => {
+            haptic('medium')
+            setStep('support')
+          }}
+        />
+      )}
+
+      {step === 'support' && (
+        <SupportSheet
           onClose={close}
           onSupport={() => {
             openSupport(SUPPORT_URL)
@@ -274,8 +285,85 @@ function InstructionsSheet({ onDone }: { onDone: () => void }) {
   )
 }
 
-// ─── Шаг 3: Подготовка к установке — сбой ────────────────────────────────────
-function ErrorSheet({
+// ─── Шаг 3: Подтверждение выхода из Apple ID ─────────────────────────────────
+function ConfirmSheet({
+  onClose,
+  onConfirm,
+}: {
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  const [checked, setChecked] = useState(false)
+
+  return (
+    <Sheet onClose={onClose}>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-[26px] font-extrabold leading-tight text-[#1C1C1E] text-balance">
+            Подтвердите выход
+          </h2>
+          <CloseButton onClick={onClose} />
+        </div>
+
+        <div className="mt-5 flex flex-col items-center text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0A84FF]/10">
+            <LogOut className="h-9 w-9 text-[#0A84FF]" strokeWidth={2} />
+          </div>
+          <p className="mt-5 max-w-xs text-[16px] leading-relaxed text-[#3C3C43] text-pretty">
+            Перед подготовкой аккаунта убедитесь, что вы вышли из своего
+            текущего Apple ID (iCloud) на этом iPhone.
+          </p>
+        </div>
+
+        {/* Чекбокс-подтверждение */}
+        <button
+          type="button"
+          onClick={() => {
+            haptic('light')
+            setChecked((v) => !v)
+          }}
+          aria-pressed={checked}
+          className="mt-6 flex w-full items-center gap-3 rounded-2xl border border-[#E5E5EA] px-4 py-4 text-left transition-transform active:scale-[0.99]"
+        >
+          <span
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 transition-colors ${
+              checked
+                ? 'border-[#0A84FF] bg-[#0A84FF]'
+                : 'border-[#C7C7CC] bg-white'
+            }`}
+          >
+            {checked && <Check className="h-4 w-4 text-white" strokeWidth={3} />}
+          </span>
+          <span className="flex-1 text-[16px] font-semibold leading-snug text-[#1C1C1E]">
+            Я вышел из своего Apple ID (iCloud)
+          </span>
+        </button>
+      </div>
+
+      {/* Зафиксированный футер */}
+      <div className="px-6 pb-7 pt-6">
+        <button
+          type="button"
+          disabled={!checked}
+          onClick={onConfirm}
+          className="w-full rounded-2xl bg-[#0A84FF] py-4 text-[17px] font-bold text-white transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#C7C7CC] disabled:active:scale-100"
+        >
+          Продолжить
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-3 w-full rounded-2xl border border-[#E5E5EA] py-4 text-[17px] font-bold text-[#1C1C1E] transition-transform active:scale-[0.98]"
+        >
+          Закрыть
+        </button>
+      </div>
+    </Sheet>
+  )
+}
+
+// ─── Шаг 4: Получение данных через поддержку ─────────────────────────────────
+function SupportSheet({
   onClose,
   onSupport,
 }: {
@@ -287,23 +375,41 @@ function ErrorSheet({
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-[26px] font-extrabold text-[#1C1C1E]">
-            Подготовка к установке
+            Почти готово
           </h2>
           <CloseButton onClick={onClose} />
         </div>
 
         <div className="mt-6 flex flex-col items-center text-center">
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#FF3B30]/10">
-            <CircleAlert className="h-11 w-11 text-[#FF3B30]" strokeWidth={2} />
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#0A84FF]/10">
+            <MessageSquare
+              className="h-11 w-11 text-[#0A84FF]"
+              strokeWidth={2}
+            />
           </div>
 
-          <h3 className="mt-5 text-[24px] font-extrabold text-[#1C1C1E]">
-            Произошёл сбой
+          <h3 className="mt-5 text-[22px] font-extrabold leading-tight text-[#1C1C1E] text-balance">
+            Напишите в поддержку за данными аккаунта
           </h3>
           <p className="mt-2 max-w-xs text-[16px] leading-relaxed text-[#8A8A8E] text-pretty">
-            Обратитесь в техническую поддержку — мы поможем решить проблему в
-            ближайшее время.
+            Напишите в поддержку мини-аппа, чтобы получить данные для входа —
+            ответ придёт в течение 5 минут.
           </p>
+        </div>
+
+        {/* Плашка со временем ответа */}
+        <div className="mt-6 flex items-center gap-4 rounded-3xl bg-[#F2F2F7] p-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0A84FF]/10">
+            <Clock className="h-6 w-6 text-[#0A84FF]" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[16px] font-bold text-[#1C1C1E]">
+              Ответ в течение 5 минут
+            </p>
+            <p className="mt-0.5 text-sm leading-snug text-[#8A8A8E]">
+              Оператор пришлёт данные для входа в аккаунт
+            </p>
+          </div>
         </div>
       </div>
 
